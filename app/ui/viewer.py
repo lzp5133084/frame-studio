@@ -35,6 +35,7 @@ class FrameViewer(QDialog):
         self.setWindowTitle(f"帧查看 — {folder}")
         self.resize(1000, 680)
         self.setStyleSheet("QDialog { background:#0C0F15; }")
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -43,10 +44,14 @@ class FrameViewer(QDialog):
         # 图片区（滚动容器，适应窗口时关闭滚动条）
         self._img = QLabel()
         self._img.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._img.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self._scroll = QScrollArea()
         self._scroll.setWidget(self._img)
         self._scroll.setWidgetResizable(True)
         self._scroll.setStyleSheet("QScrollArea { border:none; background:#0C0F15; }")
+        # 关键：滚动区默认会吞掉方向键用于滚动，必须禁用焦点让按键到达对话框
+        self._scroll.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._scroll.viewport().setFocusPolicy(Qt.FocusPolicy.NoFocus)
         root.addWidget(self._scroll, 1)
 
         # 底部状态栏
@@ -61,7 +66,8 @@ class FrameViewer(QDialog):
         bar.addWidget(hint)
         root.addLayout(bar)
 
-        self._img.installEventFilter(self)
+        # 点击装在 viewport 上（含图片以外的空白区），切换 适应窗口/实际大小
+        self._scroll.viewport().installEventFilter(self)
         if self._frames:
             self._show(0)
         else:
@@ -109,9 +115,10 @@ class FrameViewer(QDialog):
             super().keyPressEvent(e)
 
     def eventFilter(self, obj, ev):  # noqa: N802
-        if obj is self._img and ev.type() == ev.Type.MouseButtonPress:
-            self._fit = not self._fit
-            self._render()
+        if obj is self._scroll.viewport() and ev.type() == ev.Type.MouseButtonPress:
+            if self._frames:
+                self._fit = not self._fit
+                self._render()
             return True
         return super().eventFilter(obj, ev)
 

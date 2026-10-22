@@ -8,3 +8,4 @@ tools/ffmpeg.zip
 output/
 workspace/
 .vscode/
+.venv/
