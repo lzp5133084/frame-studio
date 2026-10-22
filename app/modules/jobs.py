@@ -8,6 +8,16 @@ from pathlib import Path
 M_ALL = "all"        # 全部帧
 M_FPS = "fps"        # 按帧率抽取
 M_INTERVAL = "sec"   # 按间隔秒抽取
+M_MOTION = "motion"  # 按动态程度（剔除静止画面）
+
+
+def _mpdecimate_params(sensitivity: int) -> str:
+    """灵敏度 0~100 → mpdecimate 阈值。越灵敏保留越多帧。"""
+    s = max(0, min(100, sensitivity)) / 100.0
+    frac = 0.30 - s * 0.28          # 0.30(迟钝) ~ 0.02(灵敏)
+    hi = int(64 * (20 - s * 14))    # 显著变化块阈值
+    lo = int(64 * (8 - s * 5))      # 轻微变化块阈值
+    return f"mpdecimate=hi={hi}:lo={lo}:frac={frac:.3f}"
 
 
 def build_extract_args(video: str, out_dir: Path, mode: str,
@@ -19,6 +29,9 @@ def build_extract_args(video: str, out_dir: Path, mode: str,
         args += ["-vf", f"fps={value}"]
     elif mode == M_INTERVAL and value > 0:
         args += ["-vf", f"fps=1/{value}"]
+    elif mode == M_MOTION:
+        # value 传灵敏度 0~100；vfr 防止 image2 按 CFR 复制帧填补丢帧空洞
+        args += ["-vf", _mpdecimate_params(int(value)), "-fps_mode", "vfr"]
     if img_fmt == "jpg":
         args += ["-q:v", "2"]
     args += [str(pattern)]

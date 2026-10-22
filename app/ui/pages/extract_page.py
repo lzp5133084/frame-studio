@@ -5,13 +5,13 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel,
-                               QMessageBox, QProgressBar, QPushButton,
+                               QMessageBox, QProgressBar, QPushButton, QSlider,
                                QVBoxLayout, QWidget)
 
 from ...core import settings
 from ...core.ffmpeg import FFmpegJob, fmt_duration, fmt_size, probe_media
 from ...core.paths import workspace_dir
-from ...modules.jobs import M_ALL, M_FPS, M_INTERVAL, build_extract_args
+from ...modules.jobs import M_ALL, M_FPS, M_INTERVAL, M_MOTION, build_extract_args
 from ..widgets import Card, FieldRow, PathPicker
 
 
@@ -49,21 +49,45 @@ class ExtractPage(QWidget):
         self.mode.addItem("全部帧（逐帧拆解）", M_ALL)
         self.mode.addItem("按帧率抽取（fps）", M_FPS)
         self.mode.addItem("按间隔抽取（秒/帧）", M_INTERVAL)
+        self.mode.addItem("按动态程度（剔除静止画面）", M_MOTION)
         self.value = QDoubleSpinBox()
         self.value.setRange(0.1, 120)
         self.value.setValue(1.0)
         self.value.setSingleStep(0.5)
         self.value.setEnabled(False)
-        self.mode.currentIndexChanged.connect(
-            lambda _: self.value.setEnabled(self.mode.currentData() != M_ALL))
+
+        # 灵敏度滑杆（动态程度模式专用）
+        self.sens_box = QWidget()
+        sl = QHBoxLayout(self.sens_box)
+        sl.setContentsMargins(0, 0, 0, 0)
+        sl.setSpacing(8)
+        self.sens = QSlider(Qt.Orientation.Horizontal)
+        self.sens.setRange(0, 100)
+        self.sens.setValue(70)
+        self.sens_lab = QLabel("灵敏度 70")
+        self.sens_lab.setObjectName("pageDesc")
+        self.sens_lab.setFixedWidth(64)
+        self.sens.valueChanged.connect(
+            lambda v: self.sens_lab.setText(f"灵敏度 {v}"))
+        sl.addWidget(self.sens, 1)
+        sl.addWidget(self.sens_lab)
+        self.sens_box.setVisible(False)
+
+        self.mode.currentIndexChanged.connect(self._on_mode_change)
         self.fmt = QComboBox()
         self.fmt.addItem("PNG（无损，推荐）", "png")
         self.fmt.addItem("JPG（体积小）", "jpg")
         row = QHBoxLayout()
         row.addWidget(self.mode, 2)
         row.addWidget(self.value, 1)
+        row.addWidget(self.sens_box, 1)
         row.addWidget(self.fmt, 2)
         opt_card.lay.addLayout(row)
+
+        self.motion_hint = QLabel("灵敏度越高保留越多画面；静止画面将被自动剔除，仅保留变化显著的关键帧")
+        self.motion_hint.setObjectName("pageDesc")
+        self.motion_hint.setVisible(False)
+        opt_card.lay.addWidget(self.motion_hint)
 
         self.out_dir = PathPicker("输出目录（默认 workspace/frames_<视频名>）…", is_file=False)
         opt_card.lay.addWidget(FieldRow("输出目录", self.out_dir))
@@ -93,6 +117,13 @@ class ExtractPage(QWidget):
         root.addStretch(1)
 
     # ----------------------------------------------------------
+    def _on_mode_change(self):
+        m = self.mode.currentData()
+        self.value.setEnabled(m in (M_FPS, M_INTERVAL))
+        self.value.setVisible(m != M_MOTION)
+        self.sens_box.setVisible(m == M_MOTION)
+        self.motion_hint.setVisible(m == M_MOTION)
+
     def _refresh_info(self):
         p = self.src.text()
         if not p or not Path(p).exists():
@@ -122,15 +153,20 @@ class ExtractPage(QWidget):
         out_dir = self._effective_outdir()
         out_dir.mkdir(parents=True, exist_ok=True)
         mode = self.mode.currentData()
-        args, _ = build_extract_args(video, out_dir, mode, self.value.value(),
+        param = self.sens.value() if mode == M_MOTION else self.value.value()
+        args, _ = build_extract_args(video, out_dir, mode, param,
                                      self.fmt.currentData(), "f_")
         total = self._info.get("nb_frames", 0)
         if mode == M_FPS and self.value.value() > 0 and self._info.get("fps"):
             total = int(total * self.value.value() / self._info["fps"])
         elif mode == M_INTERVAL and self.value.value() > 0:
             total = int(self._info.get("duration_ms", 0) / 1000 / self.value.value())
+        elif mode == M_MOTION:
+            total = 0  # 保留帧数取决于画面内容，无法预估
 
         self._set_running(True)
+        # 动态模式帧数不可预知 → 进度条进入忙碌态
+        self.progress.setRange(0, 0 if mode == M_MOTION else 100)
         self.status.setText(f"输出 → {out_dir}")
         self._job = FFmpegJob(args=args, total_frames=max(total, 0))
         self._job.progressed.connect(self._on_progress)
@@ -148,6 +184,7 @@ class ExtractPage(QWidget):
 
     def _on_done(self, ok: bool, msg: str, out_dir: Path):
         self._set_running(False)
+        self.progress.setRange(0, 100)
         self.progress.setValue(100 if ok else self.progress.value())
         n = len(list(out_dir.glob("f_*"))) if out_dir.exists() else 0
         self.status.setText(f"{'✅ ' if ok else '⚠ '}{msg}   ·   已产出 {n} 个文件 → {out_dir}" if ok

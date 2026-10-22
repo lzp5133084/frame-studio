@@ -40,7 +40,8 @@ _GUIDE = """
 <p style="color:#E9EDF5;"><b>🎞 抽帧提取</b>（视频 → 帧序列）</p>
 <ol style="color:#8B93A7; line-height:1.8;">
 <li>浏览选择源视频，自动显示时长 / 分辨率 / 帧率 / 总帧数</li>
-<li>选抽取模式：<code>全部帧</code> 逐帧拆解｜<code>按帧率</code> 如 5fps 采样｜<code>按间隔</code> 如每 2 秒 1 帧</li>
+<li>选抽取模式：<code>全部帧</code> 逐帧拆解｜<code>按帧率</code> 如 5fps 采样｜<code>按间隔</code> 如每 2 秒 1 帧｜<code>按动态程度</code> 剔除静止画面、只留关键帧</li>
+<li>动态程度模式：灵敏度越高保留越多（迟钝≈只留场景切换，灵敏≈轻微变化也保留）</li>
 <li>选输出目录（默认 workspace/frames_&lt;视频名&gt;），点 <b style="color:#5B7CFF;">开始抽帧</b>，可随时取消</li>
 </ol>
 <p style="color:#E9EDF5;"><b>🎬 视频合成</b>（帧序列 → 视频）</p>
