@@ -41,13 +41,15 @@ _GUIDE = """
 <ol style="color:#8B93A7; line-height:1.8;">
 <li>浏览选择源视频，自动显示时长 / 分辨率 / 帧率（帧/秒） / 总帧数</li>
 <li>选抽取模式：<code>全部帧</code> 逐帧拆解｜<code>按帧率</code> 如 5 帧/秒 采样｜<code>按间隔</code> 如每 2 秒 1 帧｜<code>按动态程度</code> 剔除静止画面、只留关键帧</li>
-<li>动态程度模式：灵敏度越高保留越多（迟钝≈只留场景切换，灵敏≈轻微变化也保留）</li>
+<li>动态程度模式（录屏演示专用）：静止讲解自动剔除，鼠标移动 / 翻页 / 滚动等关键操作自动保留；灵敏度越高，渐变等轻微变化也会保留</li>
 <li>选输出目录（默认 工作目录/frames_&lt;视频名&gt;），点 <b style="color:#5B7CFF;">开始抽帧</b>，可随时取消</li>
+<li>点 <b style="color:#5B7CFF;">查看帧</b> 浏览抽出的帧：点击图片放大/还原，← → 切换前后帧，ESC 退出</li>
 </ol>
-<p style="color:#E9EDF5;"><b>🎬 视频合成</b>（帧序列 → 视频）</p>
+<p style="color:#E9EDF5;"><b>🎬 帧序列合成</b>（帧序列 → MP4 / GIF / PPT）</p>
 <ol style="color:#8B93A7; line-height:1.8;">
 <li>选择帧目录，自动识别命名模式（f_%06d.png）与帧数</li>
-<li>设置帧率（与原视频一致可避免变速）、画质等级 CRF、编码速度预设、分辨率</li>
+<li>选输出格式：<code>MP4 视频</code>（画质等级 CRF / 编码速度 / 分辨率可调）｜<code>GIF 动图</code>（宽度可调，越小文件越小）｜<code>PPT 幻灯片</code>（每帧一页，适合步骤汇报）</li>
+<li>帧率（与原视频一致可避免变速；PPT 不需要）</li>
 <li>指定输出文件，点 <b style="color:#5B7CFF;">开始合成</b></li>
 </ol>
 <p style="color:#E9EDF5;"><b>⚠ 注意</b></p>

@@ -12,11 +12,11 @@ from .pages.extract_page import ExtractPage
 from .pages.placeholder_page import PlaceholderPage
 from .pages.settings_page import SettingsPage
 
-_VERSION = "v0.1.3"
+_VERSION = "v0.1.4"
 
 _NAV = [
     ("🎞", "抽帧提取"),
-    ("🎬", "视频合成"),
+    ("🎬", "帧序列合成"),
     ("⏩", "智能补帧"),
     ("🔤", "字幕水印"),
     ("🧽", "智能擦除"),

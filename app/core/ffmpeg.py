@@ -132,3 +132,78 @@ class FFmpegJob(QThread):
         self._stopped = True
         if self._proc and self._proc.poll() is None:
             self._proc.kill()
+
+
+@dataclass
+class FFmpegChain(QThread):
+    """串行执行多条 ffmpeg 命令（如 GIF 两步：调色板 → 合成）。
+
+    steps: [(args, total_frames), ...]，进度按步骤均分。
+    """
+
+    progressed = Signal(int, str)          # 百分比, 状态文本
+    log_line = Signal(str)
+    done = Signal(bool, str)
+
+    steps: list = field(default_factory=list)
+    step_names: list = field(default_factory=list)
+
+    def __post_init__(self):
+        super().__init__()
+        self._proc: subprocess.Popen | None = None
+        self._stopped = False
+
+    def run(self):  # noqa: D102
+        n = len(self.steps)
+        for idx, (args, total) in enumerate(self.steps):
+            if self._stopped:
+                break
+            name = (self.step_names[idx] if idx < len(self.step_names)
+                    else f"步骤 {idx + 1}/{n}")
+            base = idx * 100 // n
+            span = 100 // n
+            cmd = [_exe(bundled_ffmpeg()), "-hide_banner", "-y",
+                   *args, "-progress", "pipe:1", "-nostats"]
+            try:
+                self._proc = subprocess.Popen(
+                    cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    text=True, encoding="utf-8", errors="replace", bufsize=1,
+                    creationflags=_NO_WINDOW)
+                assert self._proc.stdout is not None
+                for raw in self._proc.stdout:
+                    if self._stopped:
+                        break
+                    line = raw.strip()
+                    if line.startswith("frame="):
+                        try:
+                            frames = int(line.split("=", 1)[1].strip())
+                        except ValueError:
+                            continue
+                        pct = base + (min(99, frames * 100 // total) if total > 0 else 0) * span // 100
+                        self.progressed.emit(pct, f"{name}：已处理 {frames} 帧")
+                    elif line == "progress=end":
+                        self.progressed.emit(base + span, f"{name}：完成")
+                    elif line:
+                        self.log_line.emit(line)
+                self._proc.wait()
+                if self._stopped:
+                    break
+                if self._proc.returncode != 0:
+                    self.done.emit(False, f"{name}失败：ffmpeg 退出码 {self._proc.returncode}")
+                    return
+            except FileNotFoundError:
+                self.done.emit(False, "未找到 ffmpeg，请检查 tools/ffmpeg 或系统 PATH")
+                return
+            except Exception as exc:  # noqa: BLE001
+                self.done.emit(False, str(exc))
+                return
+        if self._stopped:
+            self.done.emit(False, "已取消")
+        else:
+            self.progressed.emit(100, "完成")
+            self.done.emit(True, "任务完成")
+
+    def stop(self):  # noqa: D102
+        self._stopped = True
+        if self._proc and self._proc.poll() is None:
+            self._proc.kill()

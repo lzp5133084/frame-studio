@@ -12,12 +12,17 @@ M_MOTION = "motion"  # 按动态程度（剔除静止画面）
 
 
 def _mpdecimate_params(sensitivity: int) -> str:
-    """灵敏度 0~100 → mpdecimate 阈值。越灵敏保留越多帧。"""
+    """灵敏度 0~100 → mpdecimate 阈值。越灵敏保留越多帧。
+
+    录屏场景关键在 frac（差异块占比阈值）：鼠标指针移动仅产生 2~4 个
+    差异块（1080p 全帧约 32400 块），frac 必须低到 0.0001 级才能保留；
+    而大画面切换（翻页/滚动）涉及上千块，frac 0.02 即可。故 frac 走对数
+    映射 0.02 → 0.0001；lo 随灵敏度下调以捕捉低对比变化，hi 保持默认。
+    """
     s = max(0, min(100, sensitivity)) / 100.0
-    frac = 0.30 - s * 0.28          # 0.30(迟钝) ~ 0.02(灵敏)
-    hi = int(64 * (20 - s * 14))    # 显著变化块阈值
-    lo = int(64 * (8 - s * 5))      # 轻微变化块阈值
-    return f"mpdecimate=hi={hi}:lo={lo}:frac={frac:.3f}"
+    frac = 0.02 * (0.005 ** s)        # 0.02(只留大切换) ~ 0.0001(鼠标移动也留)
+    lo = int(64 * (5 - 2 * s))        # 320 ~ 192，编码噪声仍被过滤
+    return f"mpdecimate=hi=768:lo={lo}:frac={frac:.5f}"
 
 
 def build_extract_args(video: str, out_dir: Path, mode: str,
@@ -65,3 +70,18 @@ def build_compose_args(in_pattern: str, fps: float, crf: int,
     args += ["-vf", ",".join(vf), "-c:v", "libx264",
              "-crf", str(crf), "-preset", preset, "-pix_fmt", "yuv420p", out_file]
     return args
+
+
+def build_gif_args(in_pattern: str, fps: float, width: int,
+                   out_gif: str, palette: str) -> tuple[list, list]:
+    """帧序列 → GIF，两步：① 生成调色板 ② 应用调色板（高质量抖动）。
+
+    width ≤ 0 时保持原始宽度。返回 (第一步参数, 第二步参数)。
+    """
+    scale = f"scale={width}:-1:flags=lanczos," if width > 0 else ""
+    step1 = ["-framerate", str(fps), "-i", in_pattern,
+             "-vf", f"{scale}palettegen=max_colors=256:stats_mode=diff", "-y", palette]
+    step2 = ["-framerate", str(fps), "-i", in_pattern, "-i", palette,
+             "-lavfi", f"{scale}paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle",
+             "-y", out_gif]
+    return step1, step2

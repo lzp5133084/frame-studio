@@ -13,6 +13,7 @@ from ...core.ffmpeg import FFmpegJob, fmt_duration, fmt_size, probe_media
 from ...core.paths import workspace_dir
 from ...modules.jobs import M_ALL, M_FPS, M_INTERVAL, M_MOTION, build_extract_args
 from ..terms import Term
+from ..viewer import FrameViewer, collect_frames
 from ..widgets import Card, FieldRow, PathPicker
 
 
@@ -87,7 +88,7 @@ class ExtractPage(QWidget):
         row.addWidget(self.fmt, 2)
         opt_card.lay.addLayout(row)
 
-        self.motion_hint = QLabel("灵敏度越高保留越多画面；静止画面将被自动剔除，仅保留变化显著的关键帧")
+        self.motion_hint = QLabel("自动剔除静止讲解画面，保留鼠标移动 / 翻页 / 滚动等关键操作；灵敏度越高，渐变等轻微变化也会保留")
         self.motion_hint.setObjectName("pageDesc")
         self.motion_hint.setVisible(False)
         opt_card.lay.addWidget(self.motion_hint)
@@ -110,8 +111,12 @@ class ExtractPage(QWidget):
         self.stop_btn.setProperty("danger", True)
         self.stop_btn.setEnabled(False)
         self.stop_btn.clicked.connect(self._stop)
+        self.view_btn = QPushButton("🔍 查看帧")
+        self.view_btn.setToolTip("浏览输出目录中的帧图片：点击放大，←→ 切换，ESC 退出")
+        self.view_btn.clicked.connect(self._view_frames)
         btn_row.addWidget(self.run_btn)
         btn_row.addWidget(self.stop_btn)
+        btn_row.addWidget(self.view_btn)
         btn_row.addStretch(1)
         run_card.lay.addLayout(btn_row)
         run_card.lay.addWidget(self.progress)
@@ -175,6 +180,13 @@ class ExtractPage(QWidget):
         self._job.progressed.connect(self._on_progress)
         self._job.done.connect(lambda ok, msg: self._on_done(ok, msg, out_dir))
         self._job.start()
+
+    def _view_frames(self):
+        out_dir = self._effective_outdir()
+        if not out_dir.is_dir() or not collect_frames(out_dir):
+            QMessageBox.information(self, "没有帧", "输出目录下还没有帧图片，请先执行抽帧")
+            return
+        FrameViewer(out_dir, self).exec()
 
     def _stop(self):
         if self._job:
