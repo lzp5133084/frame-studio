@@ -6,12 +6,13 @@ from PySide6.QtWidgets import (QButtonGroup, QFrame, QHBoxLayout, QLabel,
                                QMainWindow, QPushButton, QStackedWidget,
                                QVBoxLayout, QWidget)
 
+from .help_panel import HelpPanel
 from .pages.compose_page import ComposePage
 from .pages.extract_page import ExtractPage
 from .pages.placeholder_page import PlaceholderPage
 from .pages.settings_page import SettingsPage
 
-_VERSION = "v0.1.0"
+_VERSION = "v0.1.1"
 
 _NAV = [
     ("🎞", "抽帧提取"),
@@ -33,12 +34,18 @@ class MainWindow(QMainWindow):
         root = QWidget()
         root.setObjectName("root")
         self.setCentralWidget(root)
-        lay = QHBoxLayout(root)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.setSpacing(0)
+        outer = QVBoxLayout(root)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
 
-        lay.addWidget(self._build_sidebar())
-        lay.addWidget(self._build_stack(), 1)
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
+        body.addWidget(self._build_sidebar())
+        body.addWidget(self._build_stack(), 1)
+
+        outer.addLayout(body, 1)
+        outer.addWidget(HelpPanel())
 
     # ----------------------------------------------------------
     def _build_sidebar(self) -> QFrame:
