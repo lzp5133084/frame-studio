@@ -17,21 +17,21 @@ _PRINCIPLE = """
 视频文件 ──FFmpeg 解码──▶ 帧序列 ──AI 逐帧处理（补帧 / 擦除 / 水印）──▶ 帧序列 ──FFmpeg 编码──▶ 视频文件
 </p>
 <table style="color:#8B93A7;" cellspacing="6">
-<tr><td style="color:#E9EDF5;"><b>界面层</b></td><td>PySide6（Qt 6）深色商用主题，左侧导航 + 页面堆栈</td></tr>
-<tr><td style="color:#E9EDF5;"><b>媒体内核</b></td><td>内置 FFmpeg 9：ffprobe 探测信息、解码抽帧、libx264 编码合成</td></tr>
-<tr><td style="color:#E9EDF5;"><b>AI 推理</b></td><td>本地模型（RIFE 补帧 / SAM 分割 / ProPainter 修复）与火山引擎云端 API 可切换</td></tr>
-<tr><td style="color:#E9EDF5;"><b>质量控制</b></td><td>PNG 无损中间帧 + CRF 18 近无损重编码，画质损失趋近于零</td></tr>
+<tr><td style="color:#E9EDF5;"><b>界面层</b></td><td>界面框架（Qt 6 / PySide6）深色商用主题，左侧导航 + 页面堆栈</td></tr>
+<tr><td style="color:#E9EDF5;"><b>媒体内核</b></td><td>内置 FFmpeg 9：探测视频信息、解码抽帧、H.264 编码合成</td></tr>
+<tr><td style="color:#E9EDF5;"><b>AI 推理</b></td><td>本地模型（补帧 RIFE / 智能分割 SAM / 视频修复 ProPainter）与火山引擎云端服务可切换</td></tr>
+<tr><td style="color:#E9EDF5;"><b>质量控制</b></td><td>PNG 无损中间帧 + 画质等级 CRF 18 近无损重编码，画质损失趋近于零</td></tr>
 </table>
 """
 
 _USAGE = """
 <h3 style="color:#E9EDF5;">使用说明</h3>
 <ul style="color:#8B93A7; line-height:1.8;">
-<li><b style="color:#E9EDF5;">环境要求</b>：Windows 10/11；开发运行需 Python 3.10+ 与 <code>pip install -r requirements.txt</code>；FFmpeg 已内置 tools/ffmpeg，无需安装</li>
+<li><b style="color:#E9EDF5;">环境要求</b>：Windows 10/11；开发运行需 Python 3.10+ 与 <code>pip install -r requirements.txt</code>；媒体引擎 FFmpeg 已内置，无需安装</li>
 <li><b style="color:#E9EDF5;">工作目录</b>：默认输出到程序目录下 <code>workspace/</code>，可在"设置"页修改</li>
-<li><b style="color:#E9EDF5;">设置页</b>：可指定自定义 FFmpeg 路径；AI 推理模式（本地 / 云端 / 混合）；火山引擎 ARK Key（云端模式必填）</li>
+<li><b style="color:#E9EDF5;">设置页</b>：可指定自定义 FFmpeg 路径；AI 推理模式（本地 / 云端 / 混合）；火山引擎密钥 ARK Key（云端模式必填）</li>
 <li><b style="color:#E9EDF5;">推荐工作流</b>：① 抽帧提取 → ② 对帧序列做处理（后续 AI 模块）→ ③ 视频合成</li>
-<li><b style="color:#E9EDF5;">画质建议</b>：中间帧用 PNG 无损格式；合成 CRF 取 18（视觉无损），追求小体积再调到 23</li>
+<li><b style="color:#E9EDF5;">画质建议</b>：中间帧用 PNG 无损格式；合成时画质等级 CRF 取 18（视觉无损），追求小体积再调到 23</li>
 </ul>
 """
 
@@ -39,15 +39,15 @@ _GUIDE = """
 <h3 style="color:#E9EDF5;">操作说明</h3>
 <p style="color:#E9EDF5;"><b>🎞 抽帧提取</b>（视频 → 帧序列）</p>
 <ol style="color:#8B93A7; line-height:1.8;">
-<li>浏览选择源视频，自动显示时长 / 分辨率 / 帧率 / 总帧数</li>
-<li>选抽取模式：<code>全部帧</code> 逐帧拆解｜<code>按帧率</code> 如 5fps 采样｜<code>按间隔</code> 如每 2 秒 1 帧｜<code>按动态程度</code> 剔除静止画面、只留关键帧</li>
+<li>浏览选择源视频，自动显示时长 / 分辨率 / 帧率（帧/秒） / 总帧数</li>
+<li>选抽取模式：<code>全部帧</code> 逐帧拆解｜<code>按帧率</code> 如 5 帧/秒 采样｜<code>按间隔</code> 如每 2 秒 1 帧｜<code>按动态程度</code> 剔除静止画面、只留关键帧</li>
 <li>动态程度模式：灵敏度越高保留越多（迟钝≈只留场景切换，灵敏≈轻微变化也保留）</li>
-<li>选输出目录（默认 workspace/frames_&lt;视频名&gt;），点 <b style="color:#5B7CFF;">开始抽帧</b>，可随时取消</li>
+<li>选输出目录（默认 工作目录/frames_&lt;视频名&gt;），点 <b style="color:#5B7CFF;">开始抽帧</b>，可随时取消</li>
 </ol>
 <p style="color:#E9EDF5;"><b>🎬 视频合成</b>（帧序列 → 视频）</p>
 <ol style="color:#8B93A7; line-height:1.8;">
 <li>选择帧目录，自动识别命名模式（f_%06d.png）与帧数</li>
-<li>设置帧率（与原视频一致可避免变速）、CRF、编码预设、分辨率</li>
+<li>设置帧率（与原视频一致可避免变速）、画质等级 CRF、编码速度预设、分辨率</li>
 <li>指定输出文件，点 <b style="color:#5B7CFF;">开始合成</b></li>
 </ol>
 <p style="color:#E9EDF5;"><b>⚠ 注意</b></p>

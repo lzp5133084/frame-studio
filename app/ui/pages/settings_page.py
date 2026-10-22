@@ -1,4 +1,4 @@
-"""设置页：FFmpeg 路径 / 默认输出 / AI 推理模式 / 火山引擎 Key。"""
+"""设置页：媒体引擎路径 / 默认输出 / AI 推理模式 / 火山引擎密钥。"""
 from __future__ import annotations
 
 from PySide6.QtWidgets import (QComboBox, QLabel, QLineEdit, QMessageBox,
@@ -6,12 +6,13 @@ from PySide6.QtWidgets import (QComboBox, QLabel, QLineEdit, QMessageBox,
 
 from ...core import settings
 from ...core.paths import bundled_ffmpeg, workspace_dir
+from ..terms import Term
 from ..widgets import Card, FieldRow, PathPicker
 
 _MODES = [
     ("混合模式（简单任务本地，重度 AI 走云端）— 推荐", settings.AI_HYBRID),
     ("本地模型（离线可用，需 NVIDIA 显卡）", settings.AI_LOCAL),
-    ("云端 API（火山引擎，不依赖本地显卡）", settings.AI_CLOUD),
+    ("云端服务（火山引擎，不依赖本地显卡）", settings.AI_CLOUD),
 ]
 
 
@@ -31,11 +32,11 @@ class SettingsPage(QWidget):
 
         # ---- 引擎 ----
         eng = Card("处理引擎")
-        self.ffmpeg = PathPicker("留空则使用内置 tools/ffmpeg", is_file=True,
+        self.ffmpeg = PathPicker("留空则使用内置 FFmpeg", is_file=True,
                                  file_filter="ffmpeg.exe")
         if settings.get(settings.K_FFMPEG):
             self.ffmpeg.setText(settings.get(settings.K_FFMPEG))
-        eng.lay.addWidget(FieldRow("FFmpeg", self.ffmpeg))
+        eng.lay.addWidget(FieldRow(Term("媒体引擎", "ffmpeg"), self.ffmpeg))
         self.outdir = PathPicker(f"默认 {workspace_dir()}", is_file=False)
         if settings.get(settings.K_OUTDIR):
             self.outdir.setText(settings.get(settings.K_OUTDIR))
@@ -50,14 +51,14 @@ class SettingsPage(QWidget):
         cur = settings.ai_mode()
         self.mode.setCurrentIndex(max(0, [k for _, k in _MODES].index(cur)
                                     if cur in [k for _, k in _MODES] else 0))
-        ai.lay.addWidget(FieldRow("推理模式", self.mode))
+        ai.lay.addWidget(FieldRow(Term("AI 推理模式", "ai_mode"), self.mode))
 
         self.ark = QLineEdit()
         self.ark.setEchoMode(QLineEdit.EchoMode.Password)
         self.ark.setPlaceholderText("火山引擎 ARK API Key（云端模式必填）")
         self.ark.setText(settings.get(settings.K_ARK_KEY))
-        ai.lay.addWidget(FieldRow("ARK Key", self.ark))
-        note = QLabel("本地模型（RIFE / SAM / ProPainter）将在对应模块首次使用时自动下载")
+        ai.lay.addWidget(FieldRow(Term("火山密钥", "ark"), self.ark))
+        note = QLabel("本地模型（补帧 / 分割 / 修复）将在对应模块首次使用时自动下载")
         note.setObjectName("pageDesc")
         ai.lay.addWidget(note)
         root.addWidget(ai)

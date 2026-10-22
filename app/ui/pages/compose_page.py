@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (QComboBox, QDoubleSpinBox, QHBoxLayout, QLabel,
 
 from ...core.ffmpeg import FFmpegJob
 from ...modules.jobs import build_compose_args, detect_frame_pattern
+from ..terms import Term
 from ..widgets import Card, FieldRow, PathPicker
 
 
@@ -24,7 +25,7 @@ class ComposePage(QWidget):
 
         title = QLabel("视频合成")
         title.setObjectName("pageTitle")
-        desc = QLabel("将处理后的帧序列重新合成为视频（H.264 / 高兼容 yuv420p）")
+        desc = QLabel("将处理后的帧序列重新合成为视频（H.264 编码 / 全平台兼容播放）")
         desc.setObjectName("pageDesc")
         root.addWidget(title)
         root.addWidget(desc)
@@ -49,18 +50,19 @@ class ComposePage(QWidget):
         self.crf.setValue(18)
         self.crf.setToolTip("0=无损，18≈视觉无损，23=默认，28=高压缩")
         self.preset = QComboBox()
-        for p in ("veryfast", "fast", "medium", "slow"):
-            self.preset.addItem(p)
-        self.preset.setCurrentText("medium")
+        for label, key in (("极快", "veryfast"), ("较快", "fast"),
+                           ("标准（推荐）", "medium"), ("较慢（更省体积）", "slow")):
+            self.preset.addItem(label, key)
+        self.preset.setCurrentIndex(2)
         self.scale = QComboBox()
         self.scale.addItem("保持原始尺寸", None)
         self.scale.addItem("1920 × 1080", (1920, 1080))
         self.scale.addItem("1280 × 720", (1280, 720))
         self.scale.addItem("3840 × 2160", (3840, 2160))
         row = QHBoxLayout()
-        row.addWidget(FieldRow("帧率", self.fps), 1)
-        row.addWidget(FieldRow("CRF", self.crf), 1)
-        row.addWidget(FieldRow("预设", self.preset), 1)
+        row.addWidget(FieldRow(Term("帧率", "fps"), self.fps), 1)
+        row.addWidget(FieldRow(Term("画质等级", "crf"), self.crf), 1)
+        row.addWidget(FieldRow(Term("编码速度", "preset"), self.preset), 1)
         opt_card.lay.addLayout(row)
         opt_card.lay.addWidget(FieldRow("分辨率", self.scale))
 
@@ -121,7 +123,7 @@ class ComposePage(QWidget):
             return
         in_pattern = str(Path(self.src.text()) / self._pattern)
         args = build_compose_args(in_pattern, self.fps.value(), self.crf.value(),
-                                  self.preset.currentText(), out,
+                                  self.preset.currentData(), out,
                                   self.scale.currentData())
         self._set_running(True)
         self.status.setText(f"输出 → {out}")

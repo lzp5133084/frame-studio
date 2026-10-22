@@ -12,7 +12,7 @@ from .pages.extract_page import ExtractPage
 from .pages.placeholder_page import PlaceholderPage
 from .pages.settings_page import SettingsPage
 
-_VERSION = "v0.1.2"
+_VERSION = "v0.1.3"
 
 _NAV = [
     ("🎞", "抽帧提取"),
@@ -27,7 +27,7 @@ _NAV = [
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"帧界 FrameStudio {_VERSION} — 视频帧级处理平台")
+        self.setWindowTitle(f"帧界 {_VERSION} · 视频帧级处理平台")
         self.resize(1160, 760)
         self.setMinimumSize(980, 640)
 
@@ -58,7 +58,7 @@ class MainWindow(QMainWindow):
 
         logo = QLabel("帧界")
         logo.setObjectName("logo")
-        sub = QLabel("FrameStudio · 帧级处理")
+        sub = QLabel("帧级处理工作台")
         sub.setObjectName("logoSub")
         lay.addWidget(logo)
         lay.addWidget(sub)
@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
             self._nav_btns.append(btn)
         lay.addStretch(1)
 
-        footer = QLabel(f"{_VERSION} · RJX Lab")
+        footer = QLabel(_VERSION)
         footer.setObjectName("navFooter")
         lay.addWidget(footer)
         return bar
@@ -88,21 +88,21 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(ComposePage())
         self.stack.addWidget(PlaceholderPage(
             "智能补帧", "对帧数进行自动补全：低帧率视频插值到丝滑高帧率，或填补抽帧缺口",
-            ["RIFE 本地实时插帧（24→60/120fps，N 卡加速）",
-             "云端 FILM 大运动插帧（火山引擎）",
+            ["本地插帧模型（RIFE）实时补帧：24 帧 → 60/120 帧，需 N 卡加速",
+             "云端大运动补帧模型（FILM）：火山引擎服务器处理",
              "帧序列缺口自动检测与补全",
              "补帧结果与原画逐帧对比预览"], "v0.2"))
         self.stack.addWidget(PlaceholderPage(
             "字幕水印", "批量为每帧叠加字幕、文字与图片水印，精确到帧级时间轴",
-            ["SRT/ASS 字幕批量烧录（字体/描边/位置可调）",
+            ["字幕文件（SRT/ASS）批量烧录：字体 / 描边 / 位置可调",
              "文字水印：内容 / 透明度 / 九宫格位置 / 平铺",
              "图片 Logo 水印：缩放 / 旋转 / 时间段",
              "帧区间精确控制（第 N~M 帧生效）"], "v0.3"))
         self.stack.addWidget(PlaceholderPage(
             "智能擦除", "自定义擦除物品或人物，并自动补全 / 替换缺失处画面",
-            ["三种选区方式：涂抹框选 / SAM 点选 / 文本描述识别",
-             "ProPainter 视频修复（本地，时序一致不闪烁）",
-             "火山引擎图像补全 API（云端备选）",
+            ["三种选区方式：涂抹框选 / 点选智能识别（SAM） / 文本描述识别",
+             "视频修复模型（ProPainter）：本地处理，前后帧连贯不闪烁",
+             "火山引擎图像补全（云端备选）",
              "缺失区域 AI 替换：用描述文字生成新内容填补"], "v0.4"))
         self.stack.addWidget(SettingsPage())
         self._nav_btns[0].setChecked(True)

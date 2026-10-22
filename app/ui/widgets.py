@@ -58,15 +58,19 @@ class PathPicker(QWidget):
 
 
 class FieldRow(QWidget):
-    """表单行：左标签右控件。"""
+    """表单行：左标签（文本或术语组件）右控件。"""
 
-    def __init__(self, label: str, widget: QWidget, parent: QWidget | None = None):
+    def __init__(self, label: str | QWidget, widget: QWidget, parent: QWidget | None = None):
         super().__init__(parent)
         lay = QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
-        lab = QLabel(label)
-        lab.setObjectName("fieldLabel")
+        if isinstance(label, str):
+            lab: QWidget = QLabel(label)
+            lab.setObjectName("fieldLabel")
+        else:
+            lab = label
         lab.setFixedWidth(86)
-        lab.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        if isinstance(lab, QLabel):
+            lab.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         lay.addWidget(lab)
         lay.addWidget(widget, 1)

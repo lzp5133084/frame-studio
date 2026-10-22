@@ -12,6 +12,7 @@ from ...core import settings
 from ...core.ffmpeg import FFmpegJob, fmt_duration, fmt_size, probe_media
 from ...core.paths import workspace_dir
 from ...modules.jobs import M_ALL, M_FPS, M_INTERVAL, M_MOTION, build_extract_args
+from ..terms import Term
 from ..widgets import Card, FieldRow, PathPicker
 
 
@@ -47,7 +48,7 @@ class ExtractPage(QWidget):
         opt_card = Card("抽取参数")
         self.mode = QComboBox()
         self.mode.addItem("全部帧（逐帧拆解）", M_ALL)
-        self.mode.addItem("按帧率抽取（fps）", M_FPS)
+        self.mode.addItem("按帧率抽取（每秒帧数）", M_FPS)
         self.mode.addItem("按间隔抽取（秒/帧）", M_INTERVAL)
         self.mode.addItem("按动态程度（剔除静止画面）", M_MOTION)
         self.value = QDoubleSpinBox()
@@ -61,14 +62,16 @@ class ExtractPage(QWidget):
         sl = QHBoxLayout(self.sens_box)
         sl.setContentsMargins(0, 0, 0, 0)
         sl.setSpacing(8)
+        sl.addWidget(Term("灵敏度", "sensitivity"))
         self.sens = QSlider(Qt.Orientation.Horizontal)
         self.sens.setRange(0, 100)
         self.sens.setValue(70)
-        self.sens_lab = QLabel("灵敏度 70")
+        self.sens_lab = QLabel("70")
         self.sens_lab.setObjectName("pageDesc")
-        self.sens_lab.setFixedWidth(64)
+        self.sens_lab.setFixedWidth(24)
+        self.sens_lab.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.sens.valueChanged.connect(
-            lambda v: self.sens_lab.setText(f"灵敏度 {v}"))
+            lambda v: self.sens_lab.setText(str(v)))
         sl.addWidget(self.sens, 1)
         sl.addWidget(self.sens_lab)
         self.sens_box.setVisible(False)
@@ -89,7 +92,7 @@ class ExtractPage(QWidget):
         self.motion_hint.setVisible(False)
         opt_card.lay.addWidget(self.motion_hint)
 
-        self.out_dir = PathPicker("输出目录（默认 workspace/frames_<视频名>）…", is_file=False)
+        self.out_dir = PathPicker("输出目录（默认 工作目录/frames_<视频名>）…", is_file=False)
         opt_card.lay.addWidget(FieldRow("输出目录", self.out_dir))
         root.addWidget(opt_card)
 
@@ -135,7 +138,7 @@ class ExtractPage(QWidget):
         i = self._info
         self.info_label.setText(
             f"时长 {fmt_duration(i['duration_ms'])}   ·   {i['width']}×{i['height']}   ·   "
-            f"{i['fps']} fps   ·   约 {i['nb_frames']} 帧   ·   {i['codec']}   ·   {fmt_size(i['size_bytes'])}")
+            f"{i['fps']} 帧/秒   ·   约 {i['nb_frames']} 帧   ·   编码 {i['codec']}   ·   {fmt_size(i['size_bytes'])}")
 
     def _effective_outdir(self) -> Path:
         if self.out_dir.text():
